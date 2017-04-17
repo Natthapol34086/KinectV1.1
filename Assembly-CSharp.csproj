@@ -102,6 +102,8 @@
      <Compile Include="Assets\tennis_Asset\Yurowm_Player\Demo\Scripts\PlayerController.cs" />
      <Compile Include="Assets\tennis_Asset\sound\sound_script\Sound.cs" />
      <None Include="Assets\tennis_Asset\Yurowm_Player\Shaders\SkinShader.shader" />
+     <None Include="Assets\[BFW]SimpleDynamicClouds\Shaders\2DClouds.shader" />
+     <None Include="Assets\[BFW]SimpleDynamicClouds\ReadMe.txt" />
  <Reference Include="UnityEngine.UI">
  <HintPath>C:/Program Files/Unity/Editor/Data/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
  </Reference>
