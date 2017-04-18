@@ -325,7 +325,8 @@ namespace Microsoft.Kinect.VisualGestureBuilder
                 throw new RootSystem.ObjectDisposedException("VisualGestureBuilderFrameSource");
             }
 
-            Microsoft_Kinect_VisualGestureBuilder_VisualGestureBuilderFrameSource_AddGesture(_pNative, Helper.NativeWrapper.GetNativePtr(gesture));
+			RootSystem.IntPtr ptrGesture = Helper.NativeWrapper.GetNativePtr(gesture);
+			Microsoft_Kinect_VisualGestureBuilder_VisualGestureBuilderFrameSource_AddGesture(_pNative, ptrGesture);
             Helper.ExceptionHelper.CheckLastError();
         }
 

@@ -1,17 +1,28 @@
 using UnityEngine;
+//using Windows.Kinect;
+
 using System;
 using System.Collections;
 
 public class CubemanController : MonoBehaviour 
 {
-	public bool MoveVertically = false;
-	public bool MirroredMovement = false;
+	[Tooltip("Index of the player, tracked by this component. 0 means the 1st player, 1 - the 2nd one, 2 - the 3rd one, etc.")]
+	public int playerIndex = 0;
 
+	[Tooltip("Whether the cubeman is allowed to move vertically or not.")]
+	public bool verticalMovement = true;
+
+	[Tooltip("Whether the cubeman is facing the player or not.")]
+	public bool mirroredMovement = false;
+
+	[Tooltip("Rate at which the cubeman will move through the scene.")]
+	public float moveRate = 1f;
+	
 	//public GameObject debugText;
 	
 	public GameObject Hip_Center;
 	public GameObject Spine;
-	public GameObject Shoulder_Center;
+	public GameObject Neck;
 	public GameObject Head;
 	public GameObject Shoulder_Left;
 	public GameObject Elbow_Left;
@@ -29,65 +40,96 @@ public class CubemanController : MonoBehaviour
 	public GameObject Knee_Right;
 	public GameObject Ankle_Right;
 	public GameObject Foot_Right;
+	public GameObject Spine_Shoulder;
+    public GameObject Hand_Tip_Left;
+    public GameObject Thumb_Left;
+    public GameObject Hand_Tip_Right;
+    public GameObject Thumb_Right;
+	
+	public LineRenderer skeletonLine;
+	public LineRenderer debugLine;
 
-	public LineRenderer SkeletonLine;
-	
-	private GameObject[] bones; 
+	private GameObject[] bones;
 	private LineRenderer[] lines;
-	private int[] parIdxs;
-	
+
+	private LineRenderer lineTLeft;
+	private LineRenderer lineTRight;
+	private LineRenderer lineFLeft;
+	private LineRenderer lineFRight;
+
 	private Vector3 initialPosition;
 	private Quaternion initialRotation;
 	private Vector3 initialPosOffset = Vector3.zero;
-	private uint initialPosUserID = 0;
+	private Int64 initialPosUserID = 0;
 	
 	
 	void Start () 
 	{
 		//store bones in a list for easier access
 		bones = new GameObject[] {
-			Hip_Center, Spine, Shoulder_Center, Head,  // 0 - 3
-			Shoulder_Left, Elbow_Left, Wrist_Left, Hand_Left,  // 4 - 7
-			Shoulder_Right, Elbow_Right, Wrist_Right, Hand_Right,  // 8 - 11
-			Hip_Left, Knee_Left, Ankle_Left, Foot_Left,  // 12 - 15
-			Hip_Right, Knee_Right, Ankle_Right, Foot_Right  // 16 - 19
-		};
-
-		parIdxs = new int[] {
-			0, 0, 1, 2,
-			2, 4, 5, 6,
-			2, 8, 9, 10,
-			0, 12, 13, 14,
-			0, 16, 17, 18
+			Hip_Center,
+            Spine,
+            Neck,
+            Head,
+            Shoulder_Left,
+            Elbow_Left,
+            Wrist_Left,
+            Hand_Left,
+            Shoulder_Right,
+            Elbow_Right,
+            Wrist_Right,
+            Hand_Right,
+            Hip_Left,
+            Knee_Left,
+            Ankle_Left,
+            Foot_Left,
+            Hip_Right,
+            Knee_Right,
+            Ankle_Right,
+            Foot_Right,
+            Spine_Shoulder,
+            Hand_Tip_Left,
+            Thumb_Left,
+            Hand_Tip_Right,
+            Thumb_Right
 		};
 		
 		// array holding the skeleton lines
 		lines = new LineRenderer[bones.Length];
 		
-		if(SkeletonLine)
-		{
-			for(int i = 0; i < lines.Length; i++)
-			{
-				lines[i] = Instantiate(SkeletonLine) as LineRenderer;
-				lines[i].transform.parent = transform;
-			}
-		}
-		
+//		if(skeletonLine)
+//		{
+//			for(int i = 0; i < lines.Length; i++)
+//			{
+//				Debug.Log ("Line: " + i + " instantiate started.");
+//
+//				if((i == 22 || i == 24) && debugLine)
+//					lines[i] = Instantiate(debugLine) as LineRenderer;
+//				else
+//					lines[i] = Instantiate(skeletonLine) as LineRenderer;
+//
+//				lines[i].transform.parent = transform;
+//			}
+//		}
+
 		initialPosition = transform.position;
 		initialRotation = transform.rotation;
 		//transform.rotation = Quaternion.identity;
 	}
 	
-	// Update is called once per frame
+
 	void Update () 
 	{
 		KinectManager manager = KinectManager.Instance;
-
-		// get 1st player
-		uint playerID = manager != null ? manager.GetPlayer1ID() : 0;
 		
-		if(playerID <= 0)
+		// get 1st player
+		Int64 userID = manager ? manager.GetUserIdByIndex(playerIndex) : 0;
+		
+		if(userID <= 0)
 		{
+			initialPosUserID = 0;
+			initialPosOffset = Vector3.zero;
+
 			// reset the pointman position and rotation
 			if(transform.position != initialPosition)
 			{
@@ -98,56 +140,63 @@ public class CubemanController : MonoBehaviour
 			{
 				transform.rotation = initialRotation;
 			}
-			
+
 			for(int i = 0; i < bones.Length; i++) 
 			{
 				bones[i].gameObject.SetActive(true);
-				
+
 				bones[i].transform.localPosition = Vector3.zero;
 				bones[i].transform.localRotation = Quaternion.identity;
 				
-				if(SkeletonLine)
+				if(lines[i] != null)
 				{
 					lines[i].gameObject.SetActive(false);
 				}
 			}
-			
+
 			return;
 		}
-
-		// set the user position in space
-		Vector3 posPointMan = manager.GetUserPosition(playerID);
-		posPointMan.z = !MirroredMovement ? -posPointMan.z : posPointMan.z;
+		
+		// set the position in space
+		Vector3 posPointMan = manager.GetUserPosition(userID);
+		Vector3 posPointManMP = new Vector3(posPointMan.x, posPointMan.y, !mirroredMovement ? -posPointMan.z : posPointMan.z);
 		
 		// store the initial position
-		if(initialPosUserID != playerID)
+		if(initialPosUserID != userID)
 		{
-			initialPosUserID = playerID;
-			initialPosOffset = transform.position - (MoveVertically ? posPointMan : new Vector3(posPointMan.x, 0, posPointMan.z));
+			initialPosUserID = userID;
+			//initialPosOffset = transform.position - (verticalMovement ? posPointMan * moveRate : new Vector3(posPointMan.x, 0, posPointMan.z) * moveRate);
+			initialPosOffset = posPointMan;
 		}
-		
-		transform.position = initialPosOffset + (MoveVertically ? posPointMan : new Vector3(posPointMan.x, 0, posPointMan.z));
 
+		Vector3 relPosUser = (posPointMan - initialPosOffset);
+		relPosUser.z =!mirroredMovement ? -relPosUser.z : relPosUser.z;
+
+		transform.position = initialPosOffset + 
+			(verticalMovement ? relPosUser * moveRate : new Vector3(relPosUser.x, 0, relPosUser.z) * moveRate);
+		
 		// update the local positions of the bones
 		for(int i = 0; i < bones.Length; i++) 
 		{
 			if(bones[i] != null)
 			{
-				int joint = MirroredMovement ? KinectWrapper.GetSkeletonMirroredJoint(i): i;
+				int joint = !mirroredMovement ? i : (int)KinectInterop.GetMirrorJoint((KinectInterop.JointType)i);
+				if(joint < 0)
+					continue;
 				
-				if(manager.IsJointTracked(playerID, joint))
+				if(manager.IsJointTracked(userID, joint))
 				{
 					bones[i].gameObject.SetActive(true);
 					
-					Vector3 posJoint = manager.GetJointPosition(playerID, joint);
-					posJoint.z = !MirroredMovement ? -posJoint.z : posJoint.z;
-
-					Quaternion rotJoint = manager.GetJointOrientation(playerID, joint, !MirroredMovement);
+					Vector3 posJoint = manager.GetJointPosition(userID, joint);
+					posJoint.z = !mirroredMovement ? -posJoint.z : posJoint.z;
+					
+					Quaternion rotJoint = manager.GetJointOrientation(userID, joint, !mirroredMovement);
 					rotJoint = initialRotation * rotJoint;
 
-					posJoint -= posPointMan;
-
-					if(MirroredMovement)
+					posJoint -= posPointManMP;
+					
+					if(mirroredMovement)
 					{
 						posJoint.x = -posJoint.x;
 						posJoint.z = -posJoint.z;
@@ -155,49 +204,39 @@ public class CubemanController : MonoBehaviour
 
 					bones[i].transform.localPosition = posJoint;
 					bones[i].transform.rotation = rotJoint;
+					
+					if(lines[i] == null && skeletonLine != null) 
+					{
+						lines[i] = Instantiate((i == 22 || i == 24) && debugLine ? debugLine : skeletonLine) as LineRenderer;
+						lines[i].transform.parent = transform;
+					}
+
+					if(lines[i] != null)
+					{
+						lines[i].gameObject.SetActive(true);
+						Vector3 posJoint2 = bones[i].transform.position;
+						
+						Vector3 dirFromParent = manager.GetJointDirection(userID, joint, false, false);
+						dirFromParent.z = !mirroredMovement ? -dirFromParent.z : dirFromParent.z;
+						Vector3 posParent = posJoint2 - dirFromParent;
+						
+						//lines[i].SetVertexCount(2);
+						lines[i].SetPosition(0, posParent);
+						lines[i].SetPosition(1, posJoint2);
+					}
+
 				}
 				else
 				{
 					bones[i].gameObject.SetActive(false);
+					
+					if(lines[i] != null)
+					{
+						lines[i].gameObject.SetActive(false);
+					}
 				}
 			}	
 		}
-
-		if(SkeletonLine)
-		{
-			for(int i = 0; i < bones.Length; i++) 
-			{
-				bool bLineDrawn = false;
-
-				if(bones[i] != null)
-				{
-					if(bones[i].gameObject.activeSelf)
-					{
-						Vector3 posJoint = bones[i].transform.position;
-
-						int parI = parIdxs[i];
-						Vector3 posParent = bones[parI].transform.position;
-
-						if(bones[parI].gameObject.activeSelf)
-						{
-							lines[i].gameObject.SetActive(true);
-							
-							//lines[i].SetVertexCount(2);
-							lines[i].SetPosition(0, posParent);
-							lines[i].SetPosition(1, posJoint);
-
-							bLineDrawn = true;
-						}
-					}
-				}	
-
-				if(!bLineDrawn)
-				{
-					lines[i].gameObject.SetActive(false);
-				}
-			}
-		}
-
 	}
 
 }

@@ -1,102 +1,148 @@
 using UnityEngine;
+//using Windows.Kinect;
 using System.Collections;
 using System;
 
+
 public class SimpleGestureListener : MonoBehaviour, KinectGestures.GestureListenerInterface
 {
-	// GUI Text to display the gesture messages.
-	public GUIText GestureInfo;
+	[Tooltip("Index of the player, tracked by this component. 0 means the 1st player, 1 - the 2nd one, 2 - the 3rd one, etc.")]
+	public int playerIndex = 0;
+
+	[Tooltip("GUI-Text to display gesture-listener messages and gesture information.")]
+	public GUIText gestureInfo;
 	
 	// private bool to track if progress message has been displayed
 	private bool progressDisplayed;
+	private float progressGestureTime;
+
 	
-	
-	public void UserDetected(uint userId, int userIndex)
+	public void UserDetected(long userId, int userIndex)
 	{
+		if (userIndex != playerIndex)
+			return;
+
 		// as an example - detect these user specific gestures
 		KinectManager manager = KinectManager.Instance;
-
 		manager.DetectGesture(userId, KinectGestures.Gestures.Jump);
 		manager.DetectGesture(userId, KinectGestures.Gestures.Squat);
 
-//		manager.DetectGesture(userId, KinectGestures.Gestures.Push);
-//		manager.DetectGesture(userId, KinectGestures.Gestures.Pull);
-		
-//		manager.DetectGesture(userId, KinectWrapper.Gestures.SwipeUp);
-//		manager.DetectGesture(userId, KinectWrapper.Gestures.SwipeDown);
-		
-		if(GestureInfo != null)
+		manager.DetectGesture(userId, KinectGestures.Gestures.LeanLeft);
+		manager.DetectGesture(userId, KinectGestures.Gestures.LeanRight);
+		manager.DetectGesture(userId, KinectGestures.Gestures.LeanForward);
+		manager.DetectGesture(userId, KinectGestures.Gestures.LeanBack);
+
+		//manager.DetectGesture(userId, KinectGestures.Gestures.Run);
+
+		if(gestureInfo != null)
 		{
-			GestureInfo.GetComponent<GUIText>().text = "SwipeLeft, SwipeRight, Jump or Squat.";
+			gestureInfo.text = "Swipe, Jump, Squat or Lean.";
 		}
 	}
 	
-	public void UserLost(uint userId, int userIndex)
+	public void UserLost(long userId, int userIndex)
 	{
-		if(GestureInfo != null)
+		if (userIndex != playerIndex)
+			return;
+
+		if(gestureInfo != null)
 		{
-			GestureInfo.GetComponent<GUIText>().text = string.Empty;
+			gestureInfo.text = string.Empty;
 		}
 	}
 
-	public void GestureInProgress(uint userId, int userIndex, KinectGestures.Gestures gesture, 
-	                              float progress, KinectWrapper.NuiSkeletonPositionIndex joint, Vector3 screenPos)
+	public void GestureInProgress(long userId, int userIndex, KinectGestures.Gestures gesture, 
+	                              float progress, KinectInterop.JointType joint, Vector3 screenPos)
 	{
-		//GestureInfo.guiText.text = string.Format("{0} Progress: {1:F1}%", gesture, (progress * 100));
-		if(gesture == KinectGestures.Gestures.Click && progress > 0.3f)
+		if (userIndex != playerIndex)
+			return;
+
+		if((gesture == KinectGestures.Gestures.ZoomOut || gesture == KinectGestures.Gestures.ZoomIn) && progress > 0.5f)
 		{
-			string sGestureText = string.Format ("{0} {1:F1}% complete", gesture, progress * 100);
-			if(GestureInfo != null)
-				GestureInfo.GetComponent<GUIText>().text = sGestureText;
-			
-			progressDisplayed = true;
-		}		
-		else if((gesture == KinectGestures.Gestures.ZoomOut || gesture == KinectGestures.Gestures.ZoomIn) && progress > 0.5f)
-		{
-			string sGestureText = string.Format ("{0} detected, zoom={1:F1}%", gesture, screenPos.z * 100);
-			if(GestureInfo != null)
-				GestureInfo.GetComponent<GUIText>().text = sGestureText;
-			
-			progressDisplayed = true;
+			if(gestureInfo != null)
+			{
+				string sGestureText = string.Format ("{0} - {1:F0}%", gesture, screenPos.z * 100f);
+				gestureInfo.text = sGestureText;
+				
+				progressDisplayed = true;
+				progressGestureTime = Time.realtimeSinceStartup;
+			}
 		}
-		else if(gesture == KinectGestures.Gestures.Wheel && progress > 0.5f)
+		else if((gesture == KinectGestures.Gestures.Wheel || gesture == KinectGestures.Gestures.LeanLeft || gesture == KinectGestures.Gestures.LeanRight ||
+			gesture == KinectGestures.Gestures.LeanForward || gesture == KinectGestures.Gestures.LeanBack) && progress > 0.5f)
 		{
-			string sGestureText = string.Format ("{0} detected, angle={1:F1} deg", gesture, screenPos.z);
-			if(GestureInfo != null)
-				GestureInfo.GetComponent<GUIText>().text = sGestureText;
-			
-			progressDisplayed = true;
+			if(gestureInfo != null)
+			{
+				string sGestureText = string.Format ("{0} - {1:F0} degrees", gesture, screenPos.z);
+				gestureInfo.text = sGestureText;
+				
+				progressDisplayed = true;
+				progressGestureTime = Time.realtimeSinceStartup;
+			}
+		}
+		else if(gesture == KinectGestures.Gestures.Run && progress > 0.5f)
+		{
+			if(gestureInfo != null)
+			{
+				string sGestureText = string.Format ("{0} - progress: {1:F0}%", gesture, progress * 100);
+				gestureInfo.text = sGestureText;
+				
+				progressDisplayed = true;
+				progressGestureTime = Time.realtimeSinceStartup;
+			}
 		}
 	}
 
-	public bool GestureCompleted (uint userId, int userIndex, KinectGestures.Gestures gesture, 
-	                              KinectWrapper.NuiSkeletonPositionIndex joint, Vector3 screenPos)
+	public bool GestureCompleted(long userId, int userIndex, KinectGestures.Gestures gesture, 
+	                              KinectInterop.JointType joint, Vector3 screenPos)
 	{
+		if (userIndex != playerIndex)
+			return false;
+
+		if(progressDisplayed)
+			return true;
+
 		string sGestureText = gesture + " detected";
-		if(gesture == KinectGestures.Gestures.Click)
-			sGestureText += string.Format(" at ({0:F1}, {1:F1})", screenPos.x, screenPos.y);
-		
-		if(GestureInfo != null)
-			GestureInfo.GetComponent<GUIText>().text = sGestureText;
-		
-		progressDisplayed = false;
+		if(gestureInfo != null)
+		{
+			gestureInfo.text = sGestureText;
+		}
 		
 		return true;
 	}
 
-	public bool GestureCancelled (uint userId, int userIndex, KinectGestures.Gestures gesture, 
-	                              KinectWrapper.NuiSkeletonPositionIndex joint)
+	public bool GestureCancelled(long userId, int userIndex, KinectGestures.Gestures gesture, 
+	                              KinectInterop.JointType joint)
 	{
+		if (userIndex != playerIndex)
+			return false;
+
 		if(progressDisplayed)
 		{
-			// clear the progress info
-			if(GestureInfo != null)
-				GestureInfo.GetComponent<GUIText>().text = String.Empty;
-			
 			progressDisplayed = false;
+
+			if(gestureInfo != null)
+			{
+				gestureInfo.text = String.Empty;
+			}
 		}
 		
 		return true;
+	}
+
+	public void Update()
+	{
+		if(progressDisplayed && ((Time.realtimeSinceStartup - progressGestureTime) > 2f))
+		{
+			progressDisplayed = false;
+			
+			if(gestureInfo != null)
+			{
+				gestureInfo.text = String.Empty;
+			}
+
+			Debug.Log("Forced progress to end.");
+		}
 	}
 	
 }

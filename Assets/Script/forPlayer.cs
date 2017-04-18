@@ -5,9 +5,9 @@ using UnityEngine.UI;
 using Windows.Kinect;
 
 public class forPlayer : MonoBehaviour {
-    private GameObject RightHand;
-    private GameObject RightWrist;
-    private GameObject RightElbow;
+    public GameObject RightHand;
+    public GameObject RightWrist;
+    public GameObject RightElbow;
     public Countdown_Timer t;
     public Text text;
     private int set;
@@ -28,11 +28,9 @@ public class forPlayer : MonoBehaviour {
     // Update is called once per frame
     void Update () {
 
-        if (RightHand == null)
+        if (RightWrist == null || RightElbow == null )
         {
-            RightHand = GameObject.Find("HandRight");
-            RightWrist = GameObject.Find("WristRight");
-            RightElbow = GameObject.Find("ElbowRight");
+            return;
         }
         else
         {
@@ -48,8 +46,8 @@ public class forPlayer : MonoBehaviour {
           
             
             gameObject.transform.rotation = Quaternion.Slerp(transform.rotation,Quaternion.LookRotation(dir),Time.deltaTime*10);
-            
-            t.GetComponent<Countdown_Timer>().enabled = true;
+            if(GameObject.FindGameObjectWithTag("bodyTag") != null)
+                t.GetComponent<Countdown_Timer>().enabled = true;
             
             
         }

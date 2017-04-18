@@ -5,9 +5,11 @@ using UnityEngine.UI;
 
 public class BodyMovement: MonoBehaviour {
     public Text textDistance;
+    public GameObject body;
     private GameObject SpineBase;
     private double distance;
     private Vector3 lastPosition;
+
     // Use this for initialization
     void Start () {
         distance = 0;
@@ -17,7 +19,7 @@ public class BodyMovement: MonoBehaviour {
 	void Update () {
         if (SpineBase == null)
         {
-            SpineBase = GameObject.Find("SpineBase");
+            SpineBase = GameObject.FindGameObjectWithTag("bodyTag").transform.GetChild(0).gameObject;
             lastPosition = SpineBase.transform.position;
         }
         else
@@ -27,7 +29,6 @@ public class BodyMovement: MonoBehaviour {
             lastPosition = gameObject.transform.position;
 
         }
-        //GameObject.Find("Distance").GetComponent<Text>().text = distance.ToString()+" m";
         textDistance.text = distance.ToString() + " m";
     }
 }

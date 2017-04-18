@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 using System;
 using System.Collections;
@@ -6,44 +6,227 @@ using System.Collections.Generic;
 
 
 /// <summary>
-/// Filter to correct the joint locations and joint orientations to constraint to range of viable human motion.
+/// Filter to correct the joint orientations to constraint to the range of viable human motion.
 /// </summary>
 public class BoneOrientationsConstraint
 {
-	public enum ConstraintAxis { X = 0, Y = 1, Z = 2 }
-	
-    // The Joint Constraints.  
+	// constraint types
+	public enum CT { None = 0, LimA = 1, LimST = 2, LimH = 3 }
+
+	// list of joint constraints
     private readonly List<BoneOrientationConstraint> jointConstraints = new List<BoneOrientationConstraint>();
 
-	//private GameObject debugText;
-	
+	private GUIText debugText;
 
-    /// Initializes a new instance of the BoneOrientationConstraints class.
+	private long frameNum = 0;
+	//private float currentTime = 0f;
+
+
+    // Initializes a new instance of the BoneOrientationConstraints class.
     public BoneOrientationsConstraint()
     {
-		//debugText = GameObject.Find("CalibrationText");
     }
+
+	public void SetDebugText(GUIText debugText)
+	{
+		this.debugText = debugText;
+	}
 	
+    // AddDefaultConstraints - Adds a set of default joint constraints for normal human poses.  
+    // This is a reasonable set of constraints for plausible human bio-mechanics.
+    public void AddDefaultConstraints()
+    {
+        // Spine
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.SpineMid, CT.LimST, Vector3.up, 5f, 0f);
+//		AddBoneOrientationConstraint((int)KinectInterop.JointType.SpineMid, CT.LimA, Vector3.forward, -5f, 5f);
+//		AddBoneOrientationConstraint((int)KinectInterop.JointType.SpineMid, CT.LimA, Vector3.right, -5f, 5f);
+//		AddBoneOrientationConstraint((int)KinectInterop.JointType.SpineMid, CT.LimA, Vector3.up, -5f, 5f);
+
+		// SpineShoulder
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.SpineShoulder, CT.LimST, Vector3.up, 5f, 0f);
+//		AddBoneOrientationConstraint((int)KinectInterop.JointType.SpineShoulder, CT.LimA, Vector3.forward, -5f, 5f);
+//		AddBoneOrientationConstraint((int)KinectInterop.JointType.SpineShoulder, CT.LimA, Vector3.right, -5f, 5f);
+//		AddBoneOrientationConstraint((int)KinectInterop.JointType.SpineShoulder, CT.LimA, Vector3.up, -5f, 5f);
+
+		// Neck
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.Neck, CT.LimST, Vector3.up, 50f, 80f);
+//		AddBoneOrientationConstraint((int)KinectInterop.JointType.Neck, CT.LimA, Vector3.forward, -35f, 35f);  // lat
+//		AddBoneOrientationConstraint((int)KinectInterop.JointType.Neck, CT.LimA, Vector3.right, -30f, 60f);  // sag
+//		AddBoneOrientationConstraint((int)KinectInterop.JointType.Neck, CT.LimA, Vector3.up, -60f, 60f);  // rot
+
+		// ShoulderLeft, ShoulderRight
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.ShoulderLeft, CT.LimST, Vector3.left, 180f, 180f);
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.ShoulderRight, CT.LimST, Vector3.right, 180f, 180f);
+//		AddBoneOrientationConstraint((int)KinectInterop.JointType.ShoulderLeft, CT.LimA, Vector3.forward, -90f, 120f);  // lat
+//		//AddBoneOrientationConstraint((int)KinectInterop.JointType.ShoulderLeft, CT.LimA, Vector3.right, -180f, 180f);  // rot
+//		AddBoneOrientationConstraint((int)KinectInterop.JointType.ShoulderLeft, CT.LimA, Vector3.up, -60f, 120f);  // sag
+//		AddBoneOrientationConstraint((int)KinectInterop.JointType.ShoulderRight, CT.LimA, Vector3.forward, -90f, 120f);  // lat
+//		//AddBoneOrientationConstraint((int)KinectInterop.JointType.ShoulderRight, CT.LimA, Vector3.right, -180f, 180f);  // rot
+//		AddBoneOrientationConstraint((int)KinectInterop.JointType.ShoulderRight, CT.LimA, Vector3.up, -120f, 60f);  // sag
+
+		// ElbowLeft, ElbowRight
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.ElbowLeft, CT.LimST, Vector3.left, 180f, 180f);
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.ElbowRight, CT.LimST, Vector3.right, 180f, 180f);
+
+		// WristLeft, WristRight
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.WristLeft, CT.LimST, Vector3.left, 60f, 40f);
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.WristRight, CT.LimST, Vector3.right, 60f, 40f);
+
+		// HandLeft, HandRight
+//		AddBoneOrientationConstraint((int)KinectInterop.JointType.HandLeft, CT.LimST, Vector3.left, 80f, 0f);
+//		AddBoneOrientationConstraint((int)KinectInterop.JointType.HandRight, CT.LimST, Vector3.left, 80f, 0f);
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.HandLeft, CT.LimH, Vector3.forward, -5f, -80f);
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.HandRight, CT.LimH, Vector3.forward, 5f, 80f);
+
+		// HipLeft, HipRight
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.HipLeft, CT.LimST, Vector3.down, 120f, 0f);
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.HipRight, CT.LimST, Vector3.down, 120f, 0f);
+
+		// KneeLeft, KneeRight
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.KneeLeft, CT.LimH, Vector3.right, 0f, 150f);
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.KneeRight, CT.LimH, Vector3.right, 0f, 150f);
+
+		// AnkleLeft, AnkleRight
+		//AddBoneOrientationConstraint((int)KinectInterop.JointType.AnkleLeft, CT.LimST, Vector3.forward, 30f, 0f);
+		//AddBoneOrientationConstraint((int)KinectInterop.JointType.AnkleRight, CT.LimST, Vector3.forward, 30f, 0f);
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.AnkleLeft, CT.LimA, Vector3.forward, -5f, 5f);  // lat
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.AnkleLeft, CT.LimA, Vector3.right, -10f, 10f);  // sag
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.AnkleLeft, CT.LimA, Vector3.up, -30f, 30f);  // rot
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.AnkleRight, CT.LimA, Vector3.forward, -5f, 5f);  // lat
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.AnkleRight, CT.LimA, Vector3.right, -10f, 10f);  // sag
+		AddBoneOrientationConstraint((int)KinectInterop.JointType.AnkleRight, CT.LimA, Vector3.up, -30f, 30f);  // rot
+	}
+
+    // Apply the orientation constraints
+	public void Constrain(ref KinectInterop.BodyData bodyData)
+    {
+		KinectManager manager = KinectManager.Instance;
+		frameNum++;
+
+        for (int i = 0; i < jointConstraints.Count; i++)
+        {
+            BoneOrientationConstraint jc = this.jointConstraints[i];
+
+			if (jc.thisJoint == (int)KinectInterop.JointType.SpineBase || bodyData.joint[jc.thisJoint].normalRotation == Quaternion.identity)
+                continue;
+			if (bodyData.joint[jc.thisJoint].trackingState == KinectInterop.TrackingState.NotTracked)
+				continue;
+
+			int prevJoint = (int)manager.GetParentJoint((KinectInterop.JointType)jc.thisJoint);
+			if (bodyData.joint[prevJoint].trackingState == KinectInterop.TrackingState.NotTracked) 
+				continue;
+
+			Quaternion rotParentN = bodyData.joint[prevJoint].normalRotation;
+			Quaternion rotDefaultN = Quaternion.FromToRotation(KinectInterop.JointBaseDir[prevJoint], KinectInterop.JointBaseDir[jc.thisJoint]);
+			rotParentN = rotParentN * rotDefaultN;
+
+			Quaternion rotJointN = bodyData.joint[jc.thisJoint].normalRotation;
+			Quaternion rotLocalN = Quaternion.Inverse(rotParentN) * rotJointN;
+			Vector3 eulerAnglesN = rotLocalN.eulerAngles;
+			
+//			if(jc.thisJoint == (int)KinectInterop.JointType.KneeLeft)
+//			{
+//				float angle1X = eulerAnglesN.x <= 180f ? eulerAnglesN.x : eulerAnglesN.x - 360f;
+//				float angle1Y = eulerAnglesN.y <= 180f ? eulerAnglesN.y : eulerAnglesN.y - 360f;
+//				float angle1Z = eulerAnglesN.z <= 180f ? eulerAnglesN.z : eulerAnglesN.z - 360f;
+//
+//				string sDebugText = string.Format("{0}. {1} - ({2:000}, {3:000}, {4:000})", 
+//	                                               frameNum, ((KinectInterop.JointType)jc.thisJoint).ToString(), angle1X, angle1Y, angle1Z);
+//
+//				if(debugText != null && (Time.time - currentTime) >= 0.5f)
+//				{
+//					currentTime = Time.time;
+//					//debugText.text = sDebugText;
+//				}
+//
+//				//Debug.Log(sDebugText);
+//			}
+			
+			bool isConstrained = false;
+			string sDebug = string.Empty;
+
+			for(int a = 0; a < jc.axisConstrainrs.Count; a++)
+			{
+				AxisOrientationConstraint ac = jc.axisConstrainrs[a];
+				Quaternion rotLimited = rotLocalN;
+
+				switch(ac.consType)
+				{
+					case 0:
+						break;
+
+					case CT.LimA:
+						eulerAnglesN = LimitAngles(eulerAnglesN, ac.axis, ac.angleMin, ac.angleMax);
+						rotLimited = Quaternion.Euler(eulerAnglesN);
+						break;
+
+					case CT.LimST:
+						rotLimited = LimitSwing(rotLocalN, ac.axis, ac.angleMin);
+						rotLimited = LimitTwist(rotLimited, ac.axis, ac.angleMax);
+						break;
+
+					case CT.LimH:
+						float lastAngle = bodyData.joint[jc.thisJoint].lastAngle;
+						rotLimited = LimitHinge(rotLocalN, ac.axis, ac.angleMin, ac.angleMax, ref lastAngle);
+						bodyData.joint[jc.thisJoint].lastAngle = lastAngle;
+						break;
+
+					default:
+						throw new Exception("Undefined constraint type found: " + (int)ac.consType);
+				}
+
+				if(rotLimited != rotLocalN)
+				{
+					rotLocalN = rotLimited;
+					isConstrained = true;
+				}
+			}
+
+			if(sDebug.Length > 0)
+			{
+				if(debugText != null && jc.thisJoint == (int)KinectInterop.JointType.ElbowLeft)
+				{
+//					debugText.text = sDebug;
+				}
+
+				Debug.Log(sDebug);
+			}
+
+			if(isConstrained)
+			{
+				rotJointN = rotParentN * rotLocalN;
+
+				Vector3 eulerJoint = rotJointN.eulerAngles;
+				Vector3 eulerJointM = new Vector3(eulerJoint.x, -eulerJoint.y, -eulerJoint.z);
+				Quaternion rotJointM = Quaternion.Euler(eulerJointM);
+
+				// put it back into the bone orientations
+				bodyData.joint[jc.thisJoint].normalRotation = rotJointN;
+				bodyData.joint[jc.thisJoint].mirroredRotation = rotJointM;
+			}
+			
+        }
+    }
+
 	// find the bone constraint structure for given joint
 	// returns the structure index in the list, or -1 if the bone structure is not found
-	private int FindBoneOrientationConstraint(int joint)
+	private int FindBoneOrientationConstraint(int thisJoint)
 	{
 		for(int i = 0; i < jointConstraints.Count; i++)
 		{
-			if(jointConstraints[i].joint == joint)
+			if(jointConstraints[i].thisJoint == thisJoint)
 				return i;
 		}
 		
-		// not found
 		return -1;
 	}
-
-    // AddJointConstraint - Adds a joint constraint to the system.  
-    public void AddBoneOrientationConstraint(int joint, ConstraintAxis axis, float angleMin, float angleMax)
-    {
-		int index = FindBoneOrientationConstraint(joint);
+	
+	// AddJointConstraint - Adds a joint constraint to the system.  
+	private void AddBoneOrientationConstraint(int thisJoint, CT consType, Vector3 axis, float angleMin, float angleMax)
+	{
+		int index = FindBoneOrientationConstraint(thisJoint);
 		
-		BoneOrientationConstraint jc = index >= 0 ? jointConstraints[index] : new BoneOrientationConstraint(joint);
+		BoneOrientationConstraint jc = index >= 0 ? jointConstraints[index] : new BoneOrientationConstraint(thisJoint);
 		
 		if(index < 0)
 		{
@@ -51,204 +234,108 @@ public class BoneOrientationsConstraint
 			jointConstraints.Add(jc);
 		}
 		
-		AxisOrientationConstraint constraint = new AxisOrientationConstraint(axis, angleMin, angleMax);
+		AxisOrientationConstraint constraint = new AxisOrientationConstraint(consType, axis, angleMin, angleMax);
 		jc.axisConstrainrs.Add(constraint);
 		
 		jointConstraints[index] = jc;
-     }
-
-    // AddDefaultConstraints - Adds a set of default joint constraints for normal human poses.  
-    // This is a reasonable set of constraints for plausible human bio-mechanics.
-    public void AddDefaultConstraints()
-    {
-//        // Spine
-//        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.Spine, ConstraintAxis.X, -10f, 45f);
-//        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.Spine, ConstraintAxis.Y, -10f, 30f);
-//        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.Spine, ConstraintAxis.Z, -10f, 30f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.Spine, ConstraintAxis.X, -90f, 95f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.Spine, ConstraintAxis.Y, -90f, 90f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.Spine, ConstraintAxis.Z, -90f, 90f);
-
-        // ShoulderCenter
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ShoulderCenter, ConstraintAxis.X, -30f, 10f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ShoulderCenter, ConstraintAxis.Y, -20f, 20f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ShoulderCenter, ConstraintAxis.Z, -20f, 20f);
-
-        // ShoulderLeft, ShoulderRight
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ShoulderLeft, ConstraintAxis.X, 0f, 30f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ShoulderRight, ConstraintAxis.X, 0f, 30f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ShoulderLeft, ConstraintAxis.Y, -60f, 60f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ShoulderRight, ConstraintAxis.Y, -30f, 90f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ShoulderLeft, ConstraintAxis.Z, -90f, 90f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ShoulderRight, ConstraintAxis.Z, -90f, 90f);
-
-//        // ElbowLeft, ElbowRight
-//        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ElbowLeft, ConstraintAxis.X, 300f, 360f);
-//        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ElbowRight, ConstraintAxis.X, 300f, 360f);
-//        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ElbowLeft, ConstraintAxis.Y, 210f, 340f);
-//        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ElbowRight, ConstraintAxis.Y, 0f, 120f);
-//        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ElbowLeft, ConstraintAxis.Z, -90f, 30f);
-//        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ElbowRight, ConstraintAxis.Z, 0f, 120f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ElbowLeft, ConstraintAxis.X, -90f, 90f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ElbowRight, ConstraintAxis.X, -90f, 90f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ElbowLeft, ConstraintAxis.Y, -90f, 90f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ElbowRight, ConstraintAxis.Y, -90f, 90f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ElbowLeft, ConstraintAxis.Z, -90f, 90f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.ElbowRight, ConstraintAxis.Z, -90f, 90f);
-
-        // WristLeft, WristRight
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.WristLeft, ConstraintAxis.X, -90f, 90f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.WristRight, ConstraintAxis.X, -90f, 90f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.WristLeft, ConstraintAxis.Y, -90f, 90f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.WristRight, ConstraintAxis.Y, -90f, 90f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.WristLeft, ConstraintAxis.Z, -90f, 90f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.WristRight, ConstraintAxis.Z, -90f, 90f);
-
-//        // HipLeft, HipRight
-//        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.HipLeft, ConstraintAxis.X, 0f, 90f);
-//        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.HipRight, ConstraintAxis.X, 0f, 90f);
-//        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.HipLeft, ConstraintAxis.Y, 0f, 0f);
-//        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.HipRight, ConstraintAxis.Y, 0f, 0f);
-//        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.HipLeft, ConstraintAxis.Z, 270f, 360f);
-//        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.HipRight, ConstraintAxis.Z, 0f, 90f);
-
-        // KneeLeft, KneeRight
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.KneeLeft, ConstraintAxis.X, 270f, 360f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.KneeRight, ConstraintAxis.X, 270f, 360f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.KneeLeft, ConstraintAxis.Y, 0f, 0f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.KneeRight, ConstraintAxis.Y, 0f, 0f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.KneeLeft, ConstraintAxis.Z, 0f, 0f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.KneeRight, ConstraintAxis.Z, 0f, 0f);
-
-        // AnkleLeft, AnkleRight
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.AnkleLeft, ConstraintAxis.X, 0f, 0f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.AnkleRight, ConstraintAxis.X, 0f, 0f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.AnkleLeft, ConstraintAxis.Y, -40f, 40f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.AnkleRight, ConstraintAxis.Y, -40f, 40f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.AnkleLeft, ConstraintAxis.Z, 0f, 0f);
-        AddBoneOrientationConstraint((int)KinectWrapper.NuiSkeletonPositionIndex.AnkleRight, ConstraintAxis.Z, 0f, 0f);
-
 	}
+	
+	private Vector3 LimitAngles(Vector3 eulerAngles, Vector3 axis, float limitMin, float limitMax)
+	{
+		int iAxis = (axis.x != 0f) ? 0 : (axis.y != 0f) ? 1 : (axis.z != 0f) ? 2 : -1;
 
-    // ApplyBoneOrientationConstraints and constrain rotations.
-    public void Constrain(ref Matrix4x4[] jointOrientations, ref bool[] jointTracked)
-    {
-        // Constraints are defined as a vector with respect to the parent bone vector, and a constraint angle, 
-        // which is the maximum angle with respect to the constraint axis that the bone can move through.
-
-        // Calculate constraint values. 0.0-1.0 means the bone is within the constraint cone. Greater than 1.0 means 
-        // it lies outside the constraint cone.
-        for (int i = 0; i < this.jointConstraints.Count; i++)
-        {
-            BoneOrientationConstraint jc = this.jointConstraints[i];
-
-            if (!jointTracked[i] || jc.joint == (int)KinectWrapper.NuiSkeletonPositionIndex.HipCenter) 
-            {
-                // End joint is not tracked or Hip Center has no parent to perform this calculation with.
-                continue;
-            }
-
-            // If the joint has a parent, constrain the bone direction to be within the constraint cone
-            int parentIdx = KinectWrapper.GetSkeletonJointParent(jc.joint);
-
-            // Local bone orientation relative to parent
-            Matrix4x4 localOrientationMatrix = jointOrientations[parentIdx].inverse * jointOrientations[jc.joint];
-			
-			Vector3 localOrientationZ = (Vector3)localOrientationMatrix.GetColumn(2);
-			Vector3 localOrientationY = (Vector3)localOrientationMatrix.GetColumn(1);
-			if(localOrientationZ == Vector3.zero || localOrientationY == Vector3.zero)
-				continue;
-			
-            Quaternion localRotation = Quaternion.LookRotation(localOrientationZ, localOrientationY);
-			Vector3 eulerAngles = localRotation.eulerAngles;
-			bool isConstrained = false;
-			
-			//Matrix4x4 globalOrientationMatrix = jointOrientations[jc.joint];
-			//Quaternion globalRotation = Quaternion.LookRotation(globalOrientationMatrix.GetColumn(2), globalOrientationMatrix.GetColumn(1));
-			
-			for(int a = 0; a < jc.axisConstrainrs.Count; a++)
+		if(iAxis >= 0)
+		{
+			float angle = eulerAngles[iAxis];
+			if(angle > 180f)
 			{
-				AxisOrientationConstraint ac = jc.axisConstrainrs[a];
-				
-				Quaternion axisRotation = Quaternion.AngleAxis(localRotation.eulerAngles[ac.axis], ac.rotateAround);
-				//Quaternion axisRotation = Quaternion.AngleAxis(globalRotation.eulerAngles[ac.axis], ac.rotateAround);
-				float angleFromMin = Quaternion.Angle(axisRotation, ac.minQuaternion);
-				float angleFromMax = Quaternion.Angle(axisRotation, ac.maxQuaternion);
-				 
-				if(!(angleFromMin <= ac.angleRange && angleFromMax <= ac.angleRange))
-				{
-					// Keep the current rotations around other axes and only
-					// correct the axis that has fallen out of range.
-					//Vector3 euler = globalRotation.eulerAngles;
-					
-					if(angleFromMin > angleFromMax)
-					{
-						eulerAngles[ac.axis] = ac.angleMax;
-					}
-					else
-					{
-						eulerAngles[ac.axis] = ac.angleMin;
-					}
-					
-					isConstrained = true;
-				}
+				angle = angle - 360f;
 			}
-			
-			if(isConstrained)
+
+			float newAngle = Mathf.Clamp(angle, limitMin, limitMax);
+			if(newAngle < 0f)
 			{
-				Quaternion constrainedRotation = Quaternion.Euler(eulerAngles);
-
-                // Put it back into the bone orientations
-				localOrientationMatrix.SetTRS(Vector3.zero, constrainedRotation, Vector3.one); 
-				jointOrientations[jc.joint] = jointOrientations[parentIdx] * localOrientationMatrix;
-				//globalOrientationMatrix.SetTRS(Vector3.zero, constrainedRotation, Vector3.one); 
-				//jointOrientations[jc.joint] = globalOrientationMatrix;
-				
-				switch(jc.joint)
-				{
-					case (int)KinectWrapper.NuiSkeletonPositionIndex.ShoulderCenter:
-						jointOrientations[(int)KinectWrapper.NuiSkeletonPositionIndex.Head] = jointOrientations[jc.joint];
-						break;
-					case (int)KinectWrapper.NuiSkeletonPositionIndex.WristLeft:
-						jointOrientations[(int)KinectWrapper.NuiSkeletonPositionIndex.HandLeft] = jointOrientations[jc.joint];
-						break;
-					case (int)KinectWrapper.NuiSkeletonPositionIndex.WristRight:
-						jointOrientations[(int)KinectWrapper.NuiSkeletonPositionIndex.HandRight] = jointOrientations[jc.joint];
-						break;
-					case (int)KinectWrapper.NuiSkeletonPositionIndex.AnkleLeft:
-						jointOrientations[(int)KinectWrapper.NuiSkeletonPositionIndex.FootLeft] = jointOrientations[jc.joint];
-						break;
-					case (int)KinectWrapper.NuiSkeletonPositionIndex.AnkleRight:
-						jointOrientations[(int)KinectWrapper.NuiSkeletonPositionIndex.FootRight] = jointOrientations[jc.joint];
-						break;
-				}
+				newAngle += 360f;
 			}
-			
-//			globalRotation = Quaternion.LookRotation(globalOrientationMatrix.GetColumn(2), globalOrientationMatrix.GetColumn(1));
-//			string stringToDebug = string.Format("{0}, {2}", (KinectWrapper.NuiSkeletonPositionIndex)jc.joint, 
-//				globalRotation.eulerAngles, localRotation.eulerAngles);
-//			Debug.Log(stringToDebug);
-//			
-//			if(debugText != null)
-//				debugText.guiText.text = stringToDebug;
-			
-        }
-    }
 
+			eulerAngles[iAxis] = newAngle;
+		}
 
-	// Joint Constraint structure to hold the constraint axis, angle and cone direction and associated joint.
-    private struct BoneOrientationConstraint
-    {
-		// skeleton joint
-		public int joint;
+		return eulerAngles;
+	}
+	
+	private Quaternion LimitSwing(Quaternion rotation, Vector3 axis, float limit) 
+	{
+		if (rotation == Quaternion.identity) 
+			return rotation;
+		if (limit >= 180f) 
+			return rotation;
 		
-		// the list of axis constraints for this bone
+		Vector3 swingAxis = rotation * axis;
+		
+		Quaternion swingRot = Quaternion.FromToRotation(axis, swingAxis);
+		Quaternion limSwingRot = Quaternion.RotateTowards(Quaternion.identity, swingRot, limit);
+		Quaternion backRot = Quaternion.FromToRotation(swingAxis, limSwingRot * axis);
+		
+		return backRot * rotation;
+	}
+	
+	private Quaternion LimitTwist(Quaternion rotation, Vector3 axis, float limit) 
+	{
+		limit = Mathf.Clamp(limit, 0f, 180f);
+		if (limit >= 180f) 
+			return rotation;
+
+		Vector3 orthoAxis = new Vector3(axis.y, axis.z ,axis.x);
+		Vector3 orthoTangent = orthoAxis;
+
+		Vector3 normal = rotation * axis;
+		Vector3.OrthoNormalize(ref normal, ref orthoTangent);
+		
+		Vector3 rotOrthoTangent = rotation * orthoAxis;
+		Vector3.OrthoNormalize(ref normal, ref rotOrthoTangent);
+		
+		Quaternion fixedRot = Quaternion.FromToRotation(rotOrthoTangent, orthoTangent) * rotation;
+		
+		if (limit <= 0f) 
+			return fixedRot;
+		
+		return Quaternion.RotateTowards(fixedRot, rotation, limit);
+	}
+	
+	private Quaternion LimitHinge(Quaternion rotation, Vector3 axis, float limitMin, float limitMax, ref float lastAngle) 
+	{
+		if (limitMin == 0f && limitMax == 0f) 
+			return Quaternion.AngleAxis(0, axis);
+		
+		Quaternion rotOnAxis = Quaternion.FromToRotation(rotation * axis, axis) * rotation; // limit-1
+		Quaternion lastRotation = Quaternion.AngleAxis(lastAngle, axis);
+
+		Quaternion rotAdded = rotOnAxis * Quaternion.Inverse(lastRotation);
+		float rotAngle = Quaternion.Angle(Quaternion.identity, rotAdded);
+		
+		Vector3 secAxis = new Vector3(axis.z, axis.x, axis.y);
+		Vector3 cross = Vector3.Cross(secAxis, axis);
+
+		if (Vector3.Dot(rotAdded * secAxis, cross) > 0f)
+		{
+			rotAngle = - rotAngle;
+		}
+		
+		rotAngle = Mathf.Clamp(lastAngle + rotAngle, limitMin, limitMax);
+		
+		return Quaternion.AngleAxis(rotAngle, axis);
+	}
+	
+	private struct BoneOrientationConstraint
+    {
+		public int thisJoint;
 		public List<AxisOrientationConstraint> axisConstrainrs;
 		
 		
-        public BoneOrientationConstraint(int joint)
+		public BoneOrientationConstraint(int thisJoint)
         {
-            this.joint = joint;
+			this.thisJoint = thisJoint;
 			axisConstrainrs = new List<AxisOrientationConstraint>();
         }
     }
@@ -256,52 +343,21 @@ public class BoneOrientationsConstraint
 	
 	private struct AxisOrientationConstraint
 	{
-		// the axis to rotate around
-		public int axis;
-		public Vector3 rotateAround;
+		public CT consType;
+		public Vector3 axis;
 				
-		// min, max and range of allowed angle
 		public float angleMin;
 		public float angleMax;
-		
-		public Quaternion minQuaternion;
-		public Quaternion maxQuaternion;
-		public float angleRange;
-				
-		
-		public AxisOrientationConstraint(ConstraintAxis axis, float angleMin, float angleMax)
+
+
+		public AxisOrientationConstraint(CT consType, Vector3 axis, float angleMin, float angleMax)
 		{
-			// Set the axis that we will rotate around
-			this.axis = (int)axis;
-			
-			switch(axis)
-			{
-				case ConstraintAxis.X:
-					this.rotateAround = Vector3.right;
-					break;
-				 
-				case ConstraintAxis.Y:
-					this.rotateAround = Vector3.up;
-					break;
-				 
-				case ConstraintAxis.Z:
-					this.rotateAround = Vector3.forward;
-					break;
-			
-				default:
-					this.rotateAround = Vector3.zero;
-					break;
-			}
+			this.consType = consType;
+			this.axis = axis;
 			
 			// Set the min and max rotations in degrees
 			this.angleMin = angleMin;
 			this.angleMax = angleMax;
-			
-				 
-			// Set the min and max rotations in quaternion space
-			this.minQuaternion = Quaternion.AngleAxis(angleMin, this.rotateAround);
-			this.maxQuaternion = Quaternion.AngleAxis(angleMax, this.rotateAround);
-			this.angleRange = angleMax - angleMin;
 		}
 	}
 	

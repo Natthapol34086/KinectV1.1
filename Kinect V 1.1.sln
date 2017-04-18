@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2015
+# Visual Studio 2017
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kinect V 1.1.Plugins", "Kinect V 1.1.Plugins.csproj", "{9B5291EB-5F00-78E3-0EDB-A021FEFB29C0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kinect V 1.1", "Kinect V 1.1.csproj", "{5EE5F40F-102C-2683-8F0F-C854E82B960A}"
