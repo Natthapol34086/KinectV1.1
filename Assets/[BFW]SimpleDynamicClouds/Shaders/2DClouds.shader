@@ -1,4 +1,6 @@
-﻿Shader "FStarVR/2DClouds" {
+﻿// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
+
+Shader "FStarVR/2DClouds" {
 	Properties {		 
 		_CloudColor ("Color", Color) = (1, 1, 1, 0.5)
 		_Density ("Density", Range(0.0, 2.0)) = 0.2
@@ -48,7 +50,7 @@
 
 			v2f vert (appdata v) {
 				v2f o;
-				o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
+				o.pos = UnityObjectToClipPos(v.vertex);
 				o.uv0.xy = TRANSFORM_TEX(v.texcoord, _ScatterMap0)* fixed2(2, 2) + _Time.x * _Speed * fixed2(1.5, 1.0);
 				o.uv0.zw = TRANSFORM_TEX(v.texcoord, _ScatterMap1)* fixed2(2, 2) + _Time.x * _Speed * fixed2(1.0, 1.2);
 				o.uv1.xy = TRANSFORM_TEX(v.texcoord, _DensityMap) * fixed2(10, 10.5) + _Time.x * _Speed * fixed2(0.75, 0.5);
