@@ -1,4 +1,4 @@
 sceneSetups:
-- path: Assets/_Scene/KnockBoard.unity
+- path: Assets/_Scene/Gaming.unity
   isLoaded: 1
   isActive: 1

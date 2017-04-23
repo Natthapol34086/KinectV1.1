@@ -208,6 +208,7 @@
     <Compile Include="Assets\KinectScripts\SpeechManager.cs" />
     <Compile Include="Assets\KinectScripts\VisualGestureManager.cs" />
     <Compile Include="Assets\LoadSceneOnClick.cs" />
+    <Compile Include="Assets\Script\BallMoveForce.cs" />
     <Compile Include="Assets\Script\BodyMovement.cs" />
     <Compile Include="Assets\Script\BounceBall.cs" />
     <Compile Include="Assets\Script\ShootBall.cs" />

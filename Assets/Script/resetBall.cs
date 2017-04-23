@@ -6,16 +6,15 @@ public class resetBall : MonoBehaviour {
 
     public GameObject ball;
     public GameObject cdt;
+    public GameObject ground;
     private double timeLeft;
 	// Use this for initialization
 	void Start () {
-        ball = GameObject.Find("Ball");
-        timeLeft = 5;
+
 	}
 	
 	// Update is called once per frame
 	void Update () {
-        timeLeft -= Time.deltaTime;
         if (ball.transform.position.y < 0 )
         {
             ball.GetComponent<Rigidbody>().useGravity = false;
